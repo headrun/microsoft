@@ -1,5 +1,6 @@
 import MySQLdb
 from urllib.parse import urlencode
+#from scrapy.xlib.pydispatch import dispatcher
 import re
 from scrapy.http import FormRequest,Request
 import scrapy
@@ -22,8 +23,10 @@ class MicrosoftReference(scrapy.Spider):
         self.update_values_list = []
         self.insert_query = "insert into papers_info_table(sk,title,topic,description,category,entity_type,keywords,authors,reference_ids,reference_link_format,main_reference_url,paper_status,created_at,modified_at) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now(),now()) on duplicate key update modified_at = now();"
         self.insert_query1 = "insert into reference_papers(sk,reference_url,main_reference_url,status,created_at,modified_at) values(%s,%s,%s,%s,now(),now()) on duplicate key update modified_at = now();"
-        self.conn = MySQLdb.connect(host='localhost',user='root',passwd='root',db='MICROSOFTPAPERSDB',charset='utf8', use_unicode=True)
+        self.conn = MySQLdb.connect(host='localhost',user='root',passwd='e3e2b51caee03ee85232537ccaff059d167518e2',db='MICROSOFTPAPERSDB',charset='utf8', use_unicode=True)
         self.cursor = self.conn.cursor()
+        #dispatcher.connect(self._spider_closed, signals.spider_closed)
+        #dispatcher.connect(self.spider_closed, signals.spider_closed)
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
@@ -43,20 +46,26 @@ class MicrosoftReference(scrapy.Spider):
 
 
     def start_requests(self):
-        select_query = 'select sk,reference_url,main_reference_url from reference_papers where status=0 order by rand() limit 1000'
+        select_query = 'select sk,reference_url,main_reference_url from reference_papers where status=0 order by rand() limit 15000'
         self.cursor.execute(select_query)
         rows = self.cursor.fetchall()
         row_ = [(i[0],) for i in rows]
+        #self.update_sks_to_9(row_)
         for row in rows:
             reference_url = row[1]
             sk = row[0]
+            #req_url = reference_url
+            #show_sk = sk
             headers = self.get_headers(reference_url)
+            #params = (  ('entityType', '2'),)
 
             url1 = 'https://academic.microsoft.com/api/entity/' + str(sk) + '?entityType=2'
             yield scrapy.Request(url1, headers=headers,callback=self.parse, meta={'sk':sk,'req_url':reference_url})
 
     def update_sks_to_9(self,row_):
         update_query = "update ignore reference_papers set status=9 where sk= %s"
+        #conn = MySQLdb.connect(host='localhost',user='root',passwd='root',db='MICROSOFTPAPERSDB',charset='utf8', use_unicode=True)
+        #cursor = conn.cursor()
 
         self.cursor.executemany(update_query,row_)
         self.conn.commit()
@@ -64,6 +73,7 @@ class MicrosoftReference(scrapy.Spider):
 
     def update_sks_to_1(self,row_):
         update_query = "update ignore reference_papers set status=1 where sk in %s"
+        #for i in row_:
         self.cursor.execute(update_query %str(tuple(row_)))
         self.conn.commit()
         return
@@ -98,11 +108,15 @@ class MicrosoftReference(scrapy.Spider):
             keywords = [k.get('dn','') for k in key if k.get('dn','')!='']
             entity_type = res.get('entityType')
             reference_paper = entity_dict.get('r',[])
+            topic_name = ''
             related_papers = entity_dict.get('rp',[])
-            if 'Biology' in keywords or 'biology' in keywords:
-                topic_name = 'biology'
-            else:
-                topic_name = ''
+            biology_keyword_list = ['Bioinformatics','Genetics','Ecology','Biotechnology','Microbiology','Molecular biology','Physiology','Neuroscience','Biochemistry','Cell biology','Immunology','Botany','Computational biology','Pharmacology','Evolutionary biology','Toxicology','Zoology','Endocrinology','Anatomy','Virology','Food science','Cancer research','Biophysics','Paleontology','Fishery','Agronomy','Horticulture','Agricultural science','Agroforestry','Animal science','Astrobiology','Biological system','Biology']
+            
+            for i in keywords:
+                if i.capitalize() in biology_keyword_list:
+                    topic_name = 'biology'
+            if not topic_name:
+                 topic_name = ''
             category = ''
             reference_link_format = 'https://academic.microsoft.com/paper/{reference_id}'
             values = (str(sk), str(title),str(topic_name),str(description),str(category),str(entity_type),str(keywords),str(authors_list), str(reference_paper),reference_link_format,req_url,'reference_paper')

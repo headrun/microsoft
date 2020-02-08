@@ -22,7 +22,7 @@ class MicrosoftPapers(scrapy.Spider):
         self.references_list = []
         self.from_ = kwargs.get('from','')
         self.to_ = kwargs.get('to','')
-        self.cursor = MySQLdb.connect(host='localhost',user='root',passwd='root',db='MICROSOFTPAPERSDB',charset='utf8', use_unicode=True).cursor()
+        self.cursor = MySQLdb.connect(host='localhost',user='root',passwd='e3e2b51caee03ee85232537ccaff059d167518e2',db='MICROSOFTPAPERSDB',charset='utf8', use_unicode=True).cursor()
         self.insert_query = "insert into papers_info_table(sk,title,topic,description,category,entity_type,keywords,authors,main_reference_url,paper_status,created_at,modified_at) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now(),now()) on duplicate key update modified_at = now();"
         self.insert_query1 = "insert into reference_papers(sk,reference_url,main_reference_url,status,created_at,modified_at) values(%s,%s,%s,%s,now(),now()) on duplicate key update modified_at = now();"
         self.insert_topic_query = "insert into parent_papers_info(sk,topic,reference_url,created_at,modified_at) values(%s,%s,%s,now(),now()) on duplicate key update modified_at = now();"
@@ -78,12 +78,47 @@ class MicrosoftPapers(scrapy.Spider):
                 data = '{"query":' + '"%s"' % str(self.topic_name)+ ',"queryExpression":"","filters":[],"orderBy":4,"skip":0,"take":10}'
         else:
             print("please provide topic name")
+        #headers = self.get_headers(req_url)
+        #yield scrapy.Request('https://academic.microsoft.com/api/search',method="POST",body= data,headers=headers,callback=self.parse,meta={'data':data,'req_url':req_url,'crawlable_check':True})
+        
+        #data = '{"query":' + "%s" % str(self.topic_name)+ ',"queryExpression":"","filters":[],"orderBy":0,"skip":0,"sortAscending":true,"take":10,"includeCitationContexts":false}'
+        #data = '{"query":' + '"%s"' % str(self.topic_name)+ ',"queryExpression":"","filters":[],"orderBy":4,"skip":0,"sortAscending":true,"take":10,"includeCitationContexts":false}'
+        #try:
+            #response = requests.post('https://academic.microsoft.com/api/search', headers=headers, data=data)
     def parse(self,response):
         req_url = response.meta.get('req_url','')
         resp_ = json.loads(response.body)
         pagenavigation_count = resp_.get('t','')
         crawlable_check = response.meta.get('crawlable_check',False)
         #self.get_papers(resp_)
+        '''papers_list = resp_.get('pr',[])
+        pagenavigation_count = resp_.get('t','')
+        for pr_dict in papers_list:
+            paper = pr_dict.get('paper',{})
+            id_ = paper.get('id','')
+            title = paper.get('dn','')
+            description = paper.get('d','')
+            entity_type= paper.get('et','')
+            tag_lines = paper.get('fos',[])
+            tag_list = [i.get('dn','') for i in tag_lines if i.get('dn','')!='']
+            try: category = paper.get('v',{}).get('displayName','')
+            except: category = ''
+            reference_url = 'https://academic.microsoft.com/paper/' + str(id_)
+            headers = self.get_headers(reference_url)
+            params = {'entityType': entity_type}
+            #try:
+            values = [str(id_),str(title),str(self.topic_name),str(description),str(category),str(entity_type),str(tag_list),reference_url]
+            self.values_list.append(values)
+            if len(self.values_list) > 500:
+                #insert_query += str(values)
+                #insert_query += ' on duplicate key update modified_at = now()'
+                self.cursor.executemany(self.insert_query,self.values_list)
+                self.values_list = []
+            api_url = 'https://academic.microsoft.com/api/entity/' + str(id_) + '?' + urlencode(params)
+            #api_url = api_url + '?' + urlencode(params)
+            yield scrapy.Request(api_url, headers=headers,callback=self.get_reference_links,meta={'data':values,'req_url':reference_url})'''
+
+
         if crawlable_check:
             data = response.meta.get('data','')
             split_url = req_url.split('&skip=')
@@ -101,6 +136,13 @@ class MicrosoftPapers(scrapy.Spider):
                 headers = self.get_headers(req_url)
                 yield scrapy.Request('https://academic.microsoft.com/api/search',method="POST",body= ','.join(dat_),headers=headers,callback=self.get_papers,meta={'data':','.join(dat_),'req_url':req_url})
                 #respon = requests.post('https://academic.microsoft.com/api/search', headers=headers, data=data)
+                '''try:
+                    respo_ = json.loads(respon.text)
+                except:
+                    continue
+                self.get_papers(respo_)
+        #except:
+        #pass'''
     
     def get_papers(self,response):
         response_ = json.loads(response.body)
@@ -122,9 +164,17 @@ class MicrosoftPapers(scrapy.Spider):
             params = {'entityType': entity_type}
             #try:
             values = [str(id_),str(title),str(self.topic_name),str(description),str(category),str(entity_type),str(tag_list),reference_url]
+            '''self.values_list.append(values)
+            if len(self.values_list) > 500:
+                #insert_query += str(values)
+                #insert_query += ' on duplicate key update modified_at = now()'
+                self.cursor.executemany(self.insert_query,self.values_list)
+                self.values_list = []'''
             api_url = 'https://academic.microsoft.com/api/entity/' + str(id_) + '?' + urlencode(params)
             #api_url = api_url + '?' + urlencode(params)
             yield scrapy.Request(api_url, headers=headers,callback=self.get_reference_links,meta={'data':values,'req_url':reference_url})
+            #enti_res = json.loads(enti_res.text)
+            #except: pass'''
 
 
     def get_reference_links(self,response):
@@ -135,7 +185,12 @@ class MicrosoftPapers(scrapy.Spider):
         if entity_dict:
             authors = entity_dict.get('a',[])
             authors_list = [k.get('dn','') for k in authors if k.get('dn','')!='']
+        #reference_link = enti_res.get('paperReferencesExpression','')
+
+        #if reference_link:
         reference_ids_list = entity_dict.get('r',[])
+        #else:
+        #reference_ids_list = []
         related_ids_list = entity_dict.get('rp',[])
         for k in related_ids_list:
             reference_link_format_ = 'https://academic.microsoft.com/paper/%s' %(k)
@@ -150,7 +205,9 @@ class MicrosoftPapers(scrapy.Spider):
             yield scrapy.Request('https://academic.microsoft.com/api/search',method="POST",body= data,headers=headers,callback=self.parse_citedby,meta = {'headers':headers,'data':data,'ref_url':reference_url,'crawlable_check':True})
             
 
+        #insert_query = "insert into papers_info_table('sk','title','topic','description','category','entity_type','keywords','authors','reference_ids','reference_link_format','main_reference_url','created_at','modified_at') values"
         values = (str(id_),str(title),str(topic_name),str(description),str(category),str(entity_type),str(tag_list),str(authors_list),reference_url,'main_paper')
+        #insert_query += str(values)
         self.values_list.append(values)
         if id_: self.topic_values_list.append((str(id_),self.topic_name,reference_url))
         if len(self.topic_values_list) > 500:
@@ -162,6 +219,8 @@ class MicrosoftPapers(scrapy.Spider):
         if len(self.references_list) > 500:
             self.cursor.executemany(self.insert_query1,self.references_list)
             self.references_list = []
+        #insert_query += ' on duplicate key update modified_at = now()'
+        #self.cursor.execute(self.insert_query,values)
         
             
     def parse_citedby(self,response):
@@ -174,6 +233,16 @@ class MicrosoftPapers(scrapy.Spider):
             data = eval(response.meta.get('data',''))
             split_url = ref_url.split('&skip=')
             for i in range(0,pagenavigation_count,10):
+                #data =  split_url[0] +'&skip='+ str(i) + '&take=10'
+                #req_url = req_url + '&skip=%s&take=10' %(i)
+                #data.update({'skip':str(i)})
+                #dat_ = data.split(',')
+                #skip = data.split(',')[-2]
+                #skip_after = '"skip":%s' %i
+                #dat_[-2] = data.split(',')[-2].replace(skip,skip_after)
+                #print (dat_)
+
+                #data = '{"query":' + '"%s"' % str(self.topic_name)+ ',"queryExpression":"","filters":[],"orderBy":4,"skip":' + str(i) + ',"sortAscending":true,"take":10,"includeCitationContexts":false}'
                 if isinstance(data,dict):
                     data.update({'skip':i})
                     headers = self.get_headers(ref_url)
