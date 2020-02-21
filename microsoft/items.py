@@ -10,5 +10,6 @@ import scrapy
 
 class MicrosoftItem(scrapy.Item):
     # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+    name = scrapy.Field()
+    file_url = scrapy.Field()
+    files = scrapy.Field()

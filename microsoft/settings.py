@@ -27,7 +27,7 @@ CONCURRENT_REQUESTS = 8
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 3
+DOWNLOAD_DELAY = 5
 # The download delay setting will honor only one of:
 CONCURRENT_REQUESTS_PER_DOMAIN = 3
 CONCURRENT_REQUESTS_PER_IP = 3
@@ -64,10 +64,16 @@ CONCURRENT_REQUESTS_PER_IP = 3
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    'microsoft.pipelines.MicrosoftPipeline': 300,
-#}
+ITEM_PIPELINES = {
+    #'microsoft.pipelines.MicrosoftPipeline': 300,
+    'microsoft.pipelines.MyFilesPipeline': 300,
+    #'scrapy.pipelines.files.FilesPipeline': 1
+}
 
+FILES_STORE = '/home/charanmalla/microsoft/microsoft/spiders/OUTPUT/gz_downloaded'
+FILES_EXTRACT = '/home/charanmalla/microsoft/microsoft/spiders/OUTPUT/gz_extracted'
+
+PROXY = '96.44.147.138:6060'
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
 #AUTOTHROTTLE_ENABLED = True
