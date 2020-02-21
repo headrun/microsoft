@@ -9,6 +9,8 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
+from os import path, getcwd
+
 BOT_NAME = 'microsoft'
 
 SPIDER_MODULES = ['microsoft.spiders']
@@ -70,10 +72,9 @@ ITEM_PIPELINES = {
     #'scrapy.pipelines.files.FilesPipeline': 1
 }
 
-FILES_STORE = '/home/charanmalla/microsoft/microsoft/spiders/OUTPUT/gz_downloaded'
-FILES_EXTRACT = '/home/charanmalla/microsoft/microsoft/spiders/OUTPUT/gz_extracted'
+FILES_STORE = path.join(getcwd(), 'OUTPUT/gz_downloaded')
+FILES_EXTRACT = path.join(getcwd(), 'OUTPUT/gz_extracted')
 
-PROXY = '96.44.147.138:6060'
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
 #AUTOTHROTTLE_ENABLED = True
