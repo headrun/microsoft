@@ -2,7 +2,10 @@ from scrapy.spiders import Spider
 from scrapy.http import Request
 from scrapy.selector import Selector
 from microsoft.items import MicrosoftItem
-from urllib.parse import urljoin
+try:
+    from urllib.parse import urljoin
+except ImportError as error:
+    from urlparse import urljoin
 
 class PubmedDownloadSpider(Spider):
     name = 'pubmed_gzdownload'
