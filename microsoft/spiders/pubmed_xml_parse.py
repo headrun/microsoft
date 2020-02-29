@@ -7,7 +7,6 @@ from MySQLdb import connect
 
 class PubmedXMLParser(object):
     def __init__(self):
-        self.values = []
         self.conn = connect(host='localhost', user='root', passwd='root', db='MICROSOFTPAPERSDB', charset='utf8')
         self.cursor = self.conn.cursor()
         self.to_read_path = path.join(getcwd(), 'OUTPUT/gz_extracted')
@@ -16,9 +15,8 @@ class PubmedXMLParser(object):
         self.insert_query = 'insert into pubmed_data(id, doi, title, language, page, authors, publication_types, completed_date, revised_date, journal_title, journal_issn, journal_abb, journal_volume, journal_issue, journal_publish_info, created_at, modified_at) values(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now(), now()) on duplicate key update modified_at=now()'
 
     def main(self):
-        pool = ThreadPool(10)
+        pool = ThreadPool(4)
         pool.map(self.process_data, self.to_read_files)
-        self.cursor.executemany(self.insert_query, self.values)
         self.cursor.close()
         self.conn.close()
 
@@ -29,6 +27,7 @@ class PubmedXMLParser(object):
         return value
 
     def process_data(self, input_file):
+        values = []
         root = parse(path.join(self.to_read_path, input_file)).getroot()
         articles = root.findall('PubmedArticle')
         for article in articles:
@@ -67,8 +66,9 @@ class PubmedXMLParser(object):
                 elif node.get('IdType', '').lower() == 'doi':
                     doi = node.text
 
-            self.values.append((pubmed_id, doi, article_title, article_language, article_page, authors, publication_types, completed_date, revised_date, journal_title, journal_issn, journal_abb, journal_volume, journal_issue, journal_publish_info))
+            values.append((pubmed_id, doi, article_title, article_language, article_page, authors, publication_types, completed_date, revised_date, journal_title, journal_issn, journal_abb, journal_volume, journal_issue, journal_publish_info))
 
+        self.cursor.executemany(self.insert_query, self.values)
         move(path.join(self.to_read_path, input_file), self.to_move_path)
 
 if __name__ == '__main__':
