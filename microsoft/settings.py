@@ -19,12 +19,14 @@ NEWSPIDER_MODULE = 'microsoft.spiders'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'microsoft (+http://www.yourdomain.com)'
-
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.116 Safari/537.36'
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-CONCURRENT_REQUESTS = 8
+CONCURRENT_REQUESTS = 16
+DOWNLOAD_MAXSIZE = 0
+DOWNLOAD_WARNSIZE = 0
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
@@ -74,6 +76,7 @@ ITEM_PIPELINES = {
 
 FILES_STORE = path.join(getcwd(), 'OUTPUT/gz_downloaded')
 FILES_EXTRACT = path.join(getcwd(), 'OUTPUT/gz_extracted')
+FILES_PROCESSED = path.join(getcwd(), 'OUTPUT/gz_processed')
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
