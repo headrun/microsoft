@@ -68,7 +68,7 @@ class PubmedXMLParser(object):
 
             values.append((pubmed_id, doi, article_title, article_language, article_page, authors, publication_types, completed_date, revised_date, journal_title, journal_issn, journal_abb, journal_volume, journal_issue, journal_publish_info))
 
-        self.cursor.executemany(self.insert_query, self.values)
+        self.cursor.executemany(self.insert_query, values)
         move(path.join(self.to_read_path, input_file), self.to_move_path)
 
 if __name__ == '__main__':
