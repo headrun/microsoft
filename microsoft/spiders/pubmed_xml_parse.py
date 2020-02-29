@@ -7,6 +7,7 @@ from MySQLdb import connect
 
 class PubmedXMLParser(object):
     def __init__(self):
+        self.values = []
         self.conn = connect(host='localhost', user='root', passwd='root', db='MICROSOFTPAPERSDB', charset='utf8')
         self.cursor = self.conn.cursor()
         self.to_read_path = path.join(getcwd(), 'OUTPUT/gz_extracted')
@@ -17,6 +18,7 @@ class PubmedXMLParser(object):
     def main(self):
         pool = ThreadPool(10)
         pool.map(self.process_data, self.to_read_files)
+        self.cursor.executemany(self.insert_query, self.values)
         self.cursor.close()
         self.conn.close()
 
@@ -29,7 +31,6 @@ class PubmedXMLParser(object):
     def process_data(self, input_file):
         root = parse(path.join(self.to_read_path, input_file)).getroot()
         articles = root.findall('PubmedArticle')
-        values = []
         for article in articles:
             pubmed_id, doi = '', ''
             article_data = article.find('MedlineCitation')
@@ -66,9 +67,8 @@ class PubmedXMLParser(object):
                 elif node.get('IdType', '').lower() == 'doi':
                     doi = node.text
 
-            values.append((pubmed_id, doi, article_title, article_language, article_page, authors, publication_types, completed_date, revised_date, journal_title, journal_issn, journal_abb, journal_volume, journal_issue, journal_publish_info))
+            self.values.append((pubmed_id, doi, article_title, article_language, article_page, authors, publication_types, completed_date, revised_date, journal_title, journal_issn, journal_abb, journal_volume, journal_issue, journal_publish_info))
 
-        self.cursor.executemany(self.insert_query, values)
         move(path.join(self.to_read_path, input_file), self.to_move_path)
 
 if __name__ == '__main__':
